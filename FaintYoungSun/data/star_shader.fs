@@ -14,7 +14,7 @@ uniform float uv_fade;
 //from geometry
 in float starRadius;
 in float sunTemp;
-in vec2 texcoord;
+in vec3 rayDirection;
 in float RHe;
 in float RConv;
 in float univYr;
@@ -22,8 +22,6 @@ in float univYr;
 //calculated in vertex, passed to geometry, then passed directly here from geometry
 in float distance;
 in vec3 cameraPosition;
-//in vec3 rayDirection;
-vec3 rayDirection;
 
 out vec4 fragColor;
 
@@ -379,13 +377,6 @@ vec4 interior(float intersection, vec3 normalizedRay)
 }
 void main(void)
 {
-
-//previously calculated in vertex, but I don't think that I can pass from vertex to fragment when I have a geometry shader
-	vec2 tpos = mat2(uv_projectionMatrix) * texcoord;
-	//vec2 tpos = mat2(uv_modelViewProjectionMatrix) * texcoord;
-	rayDirection =  mat3(uv_modelViewInverseMatrix) *  (uv_projectionInverseMatrix * vec4(tpos.xy, 0.5, 1.0)).xyz;
-    //VrayDirection = (mat3(uv_modelViewInverseMatrix) * (uv_projectionInverseMatrix * vec4(uv_vertexAttrib.xy, 0.5, 1.0)).xyz);
-
 	
 	float distanceFade = smoothstep(0.0, 1.0, (fadeEnd - distance) / (fadeEnd - fadeStart));
     float blackFade = 0.6 * (1 - smoothstep(distance, blackOut.x, blackOut.y));

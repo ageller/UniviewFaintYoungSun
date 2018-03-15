@@ -1,13 +1,11 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 4) out;
 
-in vec3 VcameraPosition[];
-in vec3 VrayDirection[];
-
 uniform mat4 uv_projectionMatrix;
 uniform mat4 uv_modelViewMatrix;
 uniform mat4 uv_modelViewInverseMatrix;
 uniform mat4 uv_modelViewProjectionMatrix;
+uniform mat4 uv_projectionInverseMatrix;
 uniform mat4 uv_normalMatrix;
 
 uniform int uv_simulationtimeDays;
@@ -24,71 +22,30 @@ uniform float simdtmin;
 //to fragment (defined below)
 out float sunTemp;
 out float starRadius;
-out vec2 texcoord;
 out vec4 fPosition;
 out float RHe;
 out float RConv;
 out float univYr;
 out float distance;
 out vec3 cameraPosition;
-//out vec3 rayDirection;
+out vec3 rayDirection;
 
-// axis should be normalized
-mat3 rotationMatrix(vec3 axis, float angle)
+void drawFullscreenQuadAtModelDepth(vec3 modelPos)
 {
-    float s = sin(angle);
-    float c = cos(angle);
-    float oc = 1.0 - c;
-    
-    return mat3(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
-                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
-                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c);
-}
-
-void drawSprite(vec4 position, float radius, float rotation)
-{
-    vec3 objectSpaceUp = vec3(0, 0, 1);
-    vec3 objectSpaceCamera = (uv_modelViewInverseMatrix * vec4(0, 0, 0, 1)).xyz;
-    vec3 cameraDirection = normalize(objectSpaceCamera - position.xyz);
-    vec3 orthogonalUp = normalize(objectSpaceUp - cameraDirection * dot(cameraDirection, objectSpaceUp));
-    vec3 rotatedUp = rotationMatrix(cameraDirection, rotation) * orthogonalUp;
-    vec3 side = cross(rotatedUp, cameraDirection);
-    texcoord = vec2(-1., 1.);
-	gl_Position = uv_modelViewProjectionMatrix * vec4(position.xyz + radius * (-side + rotatedUp), 1);
+	vec4 projectedPos = uv_modelViewProjectionMatrix * vec4(modelPos,1.);
+	float z = projectedPos.z;
+	float w = projectedPos.w;
+	gl_Position = vec4(-w, w, z, w);
+	rayDirection = (mat3(uv_modelViewInverseMatrix) * (uv_projectionInverseMatrix * vec4(-1., 1., 0.5, 1.0)).xyz);
 	EmitVertex();
-    texcoord = vec2(-1., -1.);
-	gl_Position = uv_modelViewProjectionMatrix * vec4(position.xyz + radius * (-side - rotatedUp), 1);
+	gl_Position = vec4(-w, -w, z, w);
+	rayDirection = (mat3(uv_modelViewInverseMatrix) * (uv_projectionInverseMatrix * vec4(-1.,-1., 0.5, 1.0)).xyz);
 	EmitVertex();
-    texcoord = vec2(1, 1);
-	gl_Position = uv_modelViewProjectionMatrix * vec4(position.xyz + radius * (side + rotatedUp), 1);
+	gl_Position = vec4(w, w, z, w);
+	rayDirection = (mat3(uv_modelViewInverseMatrix) * (uv_projectionInverseMatrix * vec4(1.,1., 0.5, 1.0)).xyz);
 	EmitVertex();
-    texcoord = vec2(1, -1.);
-	gl_Position = uv_modelViewProjectionMatrix * vec4(position.xyz + radius * (side - rotatedUp), 1);
-	EmitVertex();
-	EndPrimitive();
-}
-
-void drawQuad()
-{
-	
-    texcoord = vec2(-1., 1);
-	gl_Position = vec4(-1., 1., 0., 1.);
-	fPosition = gl_Position;
-	EmitVertex();
-	
-    texcoord = vec2(-1., -1.);	
-	gl_Position = vec4(-1.,-1.,0.,1.);
-	fPosition = gl_Position;
-	EmitVertex();
-	
-    texcoord = vec2(1., 1.);
-	gl_Position = vec4(1.,1.,0.,1.);
-	fPosition = gl_Position;
-	EmitVertex();
-	
-	texcoord = vec2(1, -1.);
-	gl_Position = vec4(1.,-1.,0.,1.);
-	fPosition = gl_Position;
+	gl_Position = vec4(w, -w, z, w);
+	rayDirection = (mat3(uv_modelViewInverseMatrix) * (uv_projectionInverseMatrix * vec4(1.,-1., 0.5, 1.0)).xyz);
 	EmitVertex();
 	EndPrimitive();
 }
@@ -98,16 +55,13 @@ void main()
 {
 
 //pass these to fragment
-	distance = length(VcameraPosition[0]);
-	cameraPosition = VcameraPosition[0];
-	//rayDirection = VrayDirection[0];
-	
+    cameraPosition = (uv_modelViewInverseMatrix * vec4(0, 0, 0, 1)).xyz;
+	distance = length(cameraPosition);
+
 	
 	sunTemp = 1000.;
 	starRadius = 1.;
-	vec4 pos = vec4(0., 0., 0., 1.);
-	//cameraPosition = (uv_modelViewInverseMatrix * pos).xyz;
-	//distance = length(cameraPosition);
+
 	
 //////////////////////////////////////////////////////////////
 //define the time 
@@ -144,9 +98,8 @@ void main()
 
 		starRadius = min(starRadius, 10000.)*6.95508; //My input file gives it in RSun. The conf file says this should be in units of 10^8 m
 		
-
-		//drawQuad(); //this is what was intended, but that won't work with blending.  I need to draw a sprite that is the proper size of the screen at the correct z!
-		drawSprite(pos, (distance/1.), 0.);
+		//The star is at the origin
+		drawFullscreenQuadAtModelDepth(vec3(0.));
 	}
 
 }
