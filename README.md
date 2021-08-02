@@ -6,3 +6,7 @@ Also contains an Earth, with atmosphere getting redder with increasing CO2 level
 Also contains a Venus, with a potential early ocean, drying up with time.
 
 I should probably split these into separate modules!
+
+[See this YouTube video for a demo of the Sun.](https://youtu.be/ggAIC67LCLs)
+
+[See this YouTube video for a demo of Venus.](https://youtu.be/mo60rPYe6lM)
